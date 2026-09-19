@@ -3,6 +3,7 @@ import * as userController from "../controller/userController.js";
 import * as categoryController from "../controller/categoryController.js";
 import * as productController from "../controller/productController.js";
 import * as productReviewsController from "../controller/productReviewsController.js";
+import * as contactUsController from "../controller/contactusController.js";
 import authMiddleware from "../middleware/auth.js";
 import adminMiddleware from "../middleware/admin.js";
 import {
@@ -94,6 +95,21 @@ router.post(
   "/productreviews/get",
   authMiddleware,
   productReviewsController.getAllProductReviews,
+);
+
+// Contact Us
+router.post("/contactus/submit", contactUsController.submitContactForm);
+router.post(
+  "/contactus/get",
+  authMiddleware,
+  adminMiddleware,
+  contactUsController.getAllContacts,
+);
+router.post(
+  "/contactus/delete/:id",
+  authMiddleware,
+  adminMiddleware,
+  contactUsController.deleteContact,
 );
 
 export default router;

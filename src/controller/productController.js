@@ -270,11 +270,38 @@ export const getUserAllProducts = async (req, res) => {
     const products = await Products.findAll({
       where,
       order: order,
+      include: [
+        {
+          model: ProductReviews,
+          as: "reviews",
+          where: { status: "active" },
+          required: false,
+          attributes: ["rating"],
+        },
+      ],
+    });
+
+    const productsWithRatings = products.map((product) => {
+      const productData = product.toJSON();
+      const reviews = productData.reviews || [];
+      const totalrating = reviews.length;
+      const averagerating =
+        totalrating > 0
+          ? reviews.reduce((sum, review) => sum + review.rating, 0) / totalrating
+          : 0;
+
+      delete productData.reviews;
+
+      return {
+        ...productData,
+        averagerating: parseFloat(averagerating.toFixed(1)),
+        totalrating,
+      };
     });
 
     return res.status(200).json({
       status: 200,
-      data: products,
+      data: productsWithRatings,
     });
   } catch (error) {
     return res.status(500).json({
@@ -318,13 +345,25 @@ export const getUserProductById = async (req, res) => {
           where: {
             status: "active",
           },
-          limit: 10,
+          required: false,
         },
       ],
     });
     if (!product) {
       return res.status(404).json({ message: "product not found" });
     }
+
+    const productData = product.toJSON();
+    const reviews = productData.reviews || [];
+    const totalrating = reviews.length;
+    const averagerating =
+      totalrating > 0
+        ? reviews.reduce((sum, review) => sum + review.rating, 0) / totalrating
+        : 0;
+
+    productData.reviews = reviews.slice(0, 10);
+    productData.averagerating = parseFloat(averagerating.toFixed(1));
+    productData.totalrating = totalrating;
 
     const relatedproducts = await Products.findAll({
       where: {
@@ -338,7 +377,7 @@ export const getUserProductById = async (req, res) => {
 
     return res.status(200).json({
       message: "product fetched successfully",
-      data: product,
+      data: productData,
       relatedproducts,
     });
   } catch (error) {
