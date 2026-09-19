@@ -4,6 +4,8 @@ import * as categoryController from "../controller/categoryController.js";
 import * as productController from "../controller/productController.js";
 import * as productReviewsController from "../controller/productReviewsController.js";
 import * as contactUsController from "../controller/contactusController.js";
+import * as cartController from "../controller/cartController.js";
+import * as addressController from "../controller/addressController.js";
 import authMiddleware from "../middleware/auth.js";
 import adminMiddleware from "../middleware/admin.js";
 import {
@@ -36,10 +38,7 @@ router.post(
   uploadCategoryImage,
   categoryController.updateCategory,
 );
-router.post(
-  "/category/get",
-  categoryController.getAllCategories,
-);
+router.post("/category/get", categoryController.getAllCategories);
 router.post(
   "/category/delete/:id",
   authMiddleware,
@@ -47,12 +46,8 @@ router.post(
   categoryController.deleteCategory,
 );
 
-
 // Products
-router.post(
-  "/product/get-user",
-  productController.getUserAllProducts,
-);
+router.post("/product/get-user", productController.getUserAllProducts);
 router.post(
   "/product/create",
   authMiddleware,
@@ -73,7 +68,11 @@ router.post(
   adminMiddleware,
   productController.deleteProduct,
 );
-router.post("/product/get", authMiddleware, productController.getAdminAllProducts);
+router.post(
+  "/product/get",
+  authMiddleware,
+  productController.getAdminAllProducts,
+);
 router.post(
   "/product/get/:productid",
   authMiddleware,
@@ -84,8 +83,7 @@ router.post(
   productController.getUserProductById,
 );
 
-
-// Product Reviews 
+// Product Reviews
 router.post(
   "/productreviews/add",
   authMiddleware,
@@ -111,5 +109,32 @@ router.post(
   adminMiddleware,
   contactUsController.deleteContact,
 );
+
+// Cart
+router.post("/cart/add", authMiddleware, cartController.addToCart);
+router.post("/cart/get", authMiddleware, cartController.getCartItems);
+router.post(
+  "/cart/increase/:cartid",
+  authMiddleware,
+  cartController.increaseQuantity,
+);
+router.post(
+  "/cart/decrease/:cartid",
+  authMiddleware,
+  cartController.decreaseQuantity,
+);
+router.post(
+  "/cart/delete/:cartid",
+  authMiddleware,
+  cartController.deleteCartItem,
+);
+router.post("/cart/count", authMiddleware, cartController.getCartCount);
+router.post("/cart/buynow", authMiddleware, cartController.buyNow);
+
+// Address
+router.post("/address/add", authMiddleware, addressController.AddAddress);
+router.post("/address/get", authMiddleware, addressController.GetAllAddress);
+router.post("/address/edit/:addressid", authMiddleware, addressController.EditAddress);
+router.post("/address/delete/:addressid", authMiddleware, addressController.DeleteAddress);
 
 export default router;
