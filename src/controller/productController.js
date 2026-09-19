@@ -1,6 +1,8 @@
 import Products from "../models/Products.js";
 import Category from "../models/Category.js";
 import { saveImage, deleteImage } from "../middleware/uploadMiddleware.js";
+import ProductReviews from "../models/ProductReviews.js";
+import { Op } from "sequelize";
 
 export const createProduct = async (req, res) => {
   try {
@@ -61,24 +63,23 @@ export const createProduct = async (req, res) => {
         );
       }
       if (req.files?.["images"]) {
-        product.images = [];
+        const uploadedImages = [];
         for (const file of req.files["images"]) {
-          product.images.push(
+          uploadedImages.push(
             await saveImage(file.buffer, "products", 800, 800),
           );
         }
+        product.images = uploadedImages;
       }
       if (req.files && Object.keys(req.files).length > 0) await product.save();
     } catch (imageError) {
       await product.destroy();
       deleteImage(product.thumbnailimage);
       if (product.images) product.images.forEach((img) => deleteImage(img));
-      return res
-        .status(500)
-        .json({
-          message: "image processing failed",
-          error: imageError.message,
-        });
+      return res.status(500).json({
+        message: "image processing failed",
+        error: imageError.message,
+      });
     }
 
     return res.status(201).json({ message: "product created successfully" });
@@ -142,24 +143,21 @@ export const updateProduct = async (req, res) => {
       }
       if (req.files?.["images"]) {
         const oldImages = product.images;
-        product.images = [];
+        const newImages = [];
         for (const file of req.files["images"]) {
-          product.images.push(
-            await saveImage(file.buffer, "products", 800, 800),
-          );
+          newImages.push(await saveImage(file.buffer, "products", 800, 800));
         }
+        product.images = newImages;
         if (oldImages) oldImages.forEach((img) => deleteImage(img));
       }
       if (req.files && Object.keys(req.files).length > 0) await product.save();
     } catch (imageError) {
       deleteImage(product.thumbnailimage);
       if (product.images) product.images.forEach((img) => deleteImage(img));
-      return res
-        .status(500)
-        .json({
-          message: "image processing failed",
-          error: imageError.message,
-        });
+      return res.status(500).json({
+        message: "image processing failed",
+        error: imageError.message,
+      });
     }
 
     return res.status(200).json({ message: "product updated successfully" });
@@ -191,7 +189,7 @@ export const deleteProduct = async (req, res) => {
   }
 };
 
-export const getAllProducts = async (req, res) => {
+export const getAdminAllProducts = async (req, res) => {
   try {
     const products = await Products.findAll();
     return res.status(200).json({
@@ -205,11 +203,93 @@ export const getAllProducts = async (req, res) => {
   }
 };
 
-export const getProductById = async (req, res) => {
+export const getUserAllProducts = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { isFeatured, isNewarrival, price, sort, categoryid } =
+      req.body || {};
 
-    const product = await Products.findByPk(id);
+    const where = {};
+    let order = [];
+
+    if (categoryid) {
+      where.categoryid = categoryid;
+    }
+
+    // Featured filter
+    if (isFeatured !== undefined && isFeatured !== null) {
+      where.isFeatured = isFeatured;
+    }
+
+    // New arrival filter
+    if (isNewarrival !== undefined && isNewarrival !== null) {
+      where.isNewarrival = isNewarrival;
+    }
+
+    // Price filter
+    if (price) {
+      switch (price) {
+        case "under-500":
+          where.sellingprice = {
+            [Op.lt]: 500,
+          };
+          break;
+
+        case "500-1000":
+          where.sellingprice = {
+            [Op.gte]: 500,
+            [Op.lte]: 1000,
+          };
+          break;
+
+        case "over-1000":
+          where.sellingprice = {
+            [Op.gt]: 1000,
+          };
+          break;
+
+        default:
+          break;
+      }
+    }
+
+    // Sort filter
+
+    if (sort) {
+      switch (sort) {
+        case "low-to-high":
+          order = [["sellingprice", "ASC"]];
+          break;
+        case "high-to-low":
+          order = [["sellingprice", "DESC"]];
+          break;
+        default:
+          break;
+      }
+    }
+
+    const products = await Products.findAll({
+      where,
+      order: order,
+    });
+
+    return res.status(200).json({
+      status: 200,
+      data: products,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      status: 500,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
+export const getAdminProductById = async (req, res) => {
+  try {
+    const { productid } = req.params;
+
+    const product = await Products.findByPk(productid);
     if (!product) {
       return res.status(404).json({ message: "product not found" });
     }
@@ -217,6 +297,49 @@ export const getProductById = async (req, res) => {
     return res.status(200).json({
       message: "product fetched successfully",
       data: product,
+    });
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ message: "server error", error: error.message });
+  }
+};
+
+export const getUserProductById = async (req, res) => {
+  try {
+    const { productid } = req.params;
+
+    const product = await Products.findOne({
+      where: { productid },
+      include: [
+        {
+          model: ProductReviews,
+          as: "reviews",
+          where: {
+            status: "active",
+          },
+          limit: 10,
+        },
+      ],
+    });
+    if (!product) {
+      return res.status(404).json({ message: "product not found" });
+    }
+
+    const relatedproducts = await Products.findAll({
+      where: {
+        categoryid: product.categoryid,
+        productid: {
+          [Op.ne]: product.productid,
+        },
+      },
+      limit: 10,
+    });
+
+    return res.status(200).json({
+      message: "product fetched successfully",
+      data: product,
+      relatedproducts,
     });
   } catch (error) {
     return res

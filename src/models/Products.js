@@ -4,7 +4,7 @@ import sequelize from "../config/sequelize.js";
 const Products = sequelize.define(
   "Products",
   {
-    id: {
+    productid: {
       type: DataTypes.UUID,
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
@@ -24,8 +24,7 @@ const Products = sequelize.define(
     },
     categoryid: {
       type: DataTypes.UUID,
-      allowNull: true,
-      defaultValue: null,
+      allowNull: false,
     },
     brand: {
       type: DataTypes.STRING,

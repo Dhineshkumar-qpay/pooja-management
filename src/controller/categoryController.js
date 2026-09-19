@@ -1,5 +1,7 @@
 import Category from "../models/Category.js";
 import { saveImage, deleteImage } from "../middleware/uploadMiddleware.js";
+import Products from "../models/Products.js";
+import sequelize from "../config/sequelize.js";
 
 export const createCategory = async (req, res) => {
   try {
@@ -18,17 +20,27 @@ export const createCategory = async (req, res) => {
 
     try {
       if (req.file) {
-        category.thumbnailimage = await saveImage(req.file.buffer, "category", 500, 500);
+        category.thumbnailimage = await saveImage(
+          req.file.buffer,
+          "category",
+          500,
+          500,
+        );
         await category.save();
       }
     } catch (imageError) {
       await category.destroy();
-      return res.status(500).json({ message: "image processing failed", error: imageError.message });
+      return res.status(500).json({
+        message: "image processing failed",
+        error: imageError.message,
+      });
     }
 
     return res.status(201).json({ message: "category created successfully" });
   } catch (error) {
-    return res.status(500).json({ message: "server error", error: error.message });
+    return res
+      .status(500)
+      .json({ message: "server error", error: error.message });
   }
 };
 
@@ -50,18 +62,28 @@ export const updateCategory = async (req, res) => {
     try {
       if (req.file) {
         const oldImage = existingCategory.thumbnailimage;
-        existingCategory.thumbnailimage = await saveImage(req.file.buffer, "category", 500, 500);
+        existingCategory.thumbnailimage = await saveImage(
+          req.file.buffer,
+          "category",
+          500,
+          500,
+        );
         await existingCategory.save();
         deleteImage(oldImage);
       }
     } catch (imageError) {
       deleteImage(existingCategory.thumbnailimage);
-      return res.status(500).json({ message: "image processing failed", error: imageError.message });
+      return res.status(500).json({
+        message: "image processing failed",
+        error: imageError.message,
+      });
     }
 
     return res.status(200).json({ message: "category updated successfully" });
   } catch (error) {
-    return res.status(500).json({ message: "server error", error: error.message });
+    return res
+      .status(500)
+      .json({ message: "server error", error: error.message });
   }
 };
 
@@ -79,18 +101,38 @@ export const deleteCategory = async (req, res) => {
 
     return res.status(200).json({ message: "category deleted successfully" });
   } catch (error) {
-    return res.status(500).json({ message: "server error", error: error.message });
+    return res
+      .status(500)
+      .json({ message: "server error", error: error.message });
   }
 };
 
 export const getAllCategories = async (req, res) => {
   try {
-    const categories = await Category.findAll();
+    const categories = await Category.findAll({
+      attributes: [
+        "categoryid",
+        "categoryname",
+        "description",
+        "thumbnailimage",
+        [sequelize.fn("COUNT", sequelize.col("Products.productid")), "productcount"],
+      ],
+      include: [
+        {
+          model: Products,
+          attributes: [],
+        },
+      ],
+      group: ["Category.categoryid"],
+      raw: true,
+    });
     return res.status(200).json({
-      message: "categories fetched successfully",
+      status: 200,
       data: categories,
     });
   } catch (error) {
-    return res.status(500).json({ message: "server error", error: error.message });
+    return res
+      .status(500)
+      .json({ message: "server error", error: error.message });
   }
 };

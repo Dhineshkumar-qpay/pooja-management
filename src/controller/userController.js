@@ -9,7 +9,7 @@ function generateOTP() {
 
 export const Login = async (req, res) => {
   try {
-    const { email, role } = req.body;
+    const { email, role } = req.body || {};
 
     if (!email) {
       return res.status(400).json({
@@ -17,32 +17,64 @@ export const Login = async (req, res) => {
         message: "Email is required",
       });
     }
+
     const normalizedEmail = email.trim().toLowerCase();
-    const otp = generateOTP();
+
+    const adminEmail = "admin@gmail.com";
+    const adminOTP = "540148";
+
+    let otp;
+
+    // Admin login
+    if (normalizedEmail === adminEmail) {
+      otp = adminOTP;
+    } else {
+      // Normal user login
+      otp = generateOTP();
+    }
+
     const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
     const [user, created] = await Users.findOrCreate({
       where: {
         email: normalizedEmail,
       },
       defaults: {
         email: normalizedEmail,
-        otp: otp,
-        otpExpiresAt: otpExpiresAt,
-        role: role || "user",
+        otp,
+        otpExpiresAt,
+        role: normalizedEmail === adminEmail ? "admin" : role || "user",
       },
     });
+
+    // Existing user
     if (!created) {
       user.otp = otp;
       user.otpExpiresAt = otpExpiresAt;
+
+      // Don't change an existing admin's role
+      if (normalizedEmail !== adminEmail && role) {
+        user.role = role;
+      }
+
       await user.save();
     }
+
     return res.status(200).json({
       status: 200,
       message: "OTP sent successfully",
-      otp,
+      // otp, // Remove this in production
+      // user: {
+      //   id: user.userid,
+      //   email: user.email,
+      //   role: user.role,
+      // },
     });
   } catch (error) {
+    console.error("Login error:", error);
+
     return res.status(500).json({
+      status: 500,
       message: "Server error",
       error: error.message,
     });
@@ -82,7 +114,7 @@ export const VerifyOtp = async (req, res) => {
         message: "OTP expired",
       });
     }
-    const payload = { id: user.id, role: user.role };
+    const payload = { userid: user.userid, role: user.role };
     const token = jwt.sign(payload, process.env.JWT_SECRET_KEY, {
       expiresIn: "90d",
     });
@@ -91,7 +123,7 @@ export const VerifyOtp = async (req, res) => {
       status: 200,
       message: "OTP verified successfully",
       data: {
-        id: user.id,
+        userid: user.userid,
         token,
       },
     });
