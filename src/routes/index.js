@@ -6,11 +6,16 @@ import * as productReviewsController from "../controller/productReviewsControlle
 import * as contactUsController from "../controller/contactusController.js";
 import * as cartController from "../controller/cartController.js";
 import * as addressController from "../controller/addressController.js";
+import * as orderController from "../controller/orderController.js";
+import * as testimonialController from "../controller/testimonialController.js";
+import * as bannerController from "../controller/bannerController.js";
+import * as couponController from "../controller/couponController.js";
 import authMiddleware from "../middleware/auth.js";
 import adminMiddleware from "../middleware/admin.js";
 import {
   uploadCategoryImage,
   uploadProductImages,
+  uploadBannerImage,
 } from "../middleware/uploadMiddleware.js";
 
 const router = express.Router();
@@ -22,6 +27,12 @@ router.post(
   "/auth/update-profile",
   authMiddleware,
   userController.UpdateProfile,
+);
+router.post(
+  "/auth/get-all",
+  authMiddleware,
+  adminMiddleware,
+  userController.GetAllUsers,
 );
 
 router.post(
@@ -82,6 +93,7 @@ router.post(
   "/product/get-product-details/:productid",
   productController.getUserProductById,
 );
+router.post("/product/search", productController.searchProducts);
 
 // Product Reviews
 router.post(
@@ -93,6 +105,18 @@ router.post(
   "/productreviews/get",
   authMiddleware,
   productReviewsController.getAllProductReviews,
+);
+router.post(
+  "/productreviews/update-status/:id",
+  authMiddleware,
+  adminMiddleware,
+  productReviewsController.updateProductReviewStatus,
+);
+router.post(
+  "/productreviews/delete/:id",
+  authMiddleware,
+  adminMiddleware,
+  productReviewsController.deleteProductReview,
 );
 
 // Contact Us
@@ -134,7 +158,91 @@ router.post("/cart/buynow", authMiddleware, cartController.buyNow);
 // Address
 router.post("/address/add", authMiddleware, addressController.AddAddress);
 router.post("/address/get", authMiddleware, addressController.GetAllAddress);
-router.post("/address/edit/:addressid", authMiddleware, addressController.EditAddress);
-router.post("/address/delete/:addressid", authMiddleware, addressController.DeleteAddress);
+router.post(
+  "/address/edit/:addressid",
+  authMiddleware,
+  addressController.EditAddress,
+);
+router.post(
+  "/address/delete/:addressid",
+  authMiddleware,
+  addressController.DeleteAddress,
+);
+
+//orders
+router.post("/orders/place-order", authMiddleware, orderController.PlaceOrder);
+router.post(
+  "/orders/verify-payment",
+  authMiddleware,
+  orderController.VerifyPayment,
+);
+router.post("/orders/all", authMiddleware, orderController.GetAllAdminOrders);
+router.post("/orders/user", authMiddleware, orderController.GetAllUserOrders);
+router.post("/orders/details", authMiddleware, orderController.GetOrderDetails);
+router.post("/orders/buy-again", authMiddleware, orderController.BuyAgain);
+
+// Testimonials
+router.post("/testimonials/add", testimonialController.addTestimonial);
+router.post("/testimonials/get", testimonialController.getAllTestimonials);
+router.post(
+  "/testimonials/update-status/:id",
+  authMiddleware,
+  adminMiddleware,
+  testimonialController.updateTestimonialStatus,
+);
+router.post(
+  "/testimonials/delete/:id",
+  authMiddleware,
+  adminMiddleware,
+  testimonialController.deleteTestimonial,
+);
+
+// Banners
+router.post(
+  "/banner/add",
+  authMiddleware,
+  adminMiddleware,
+  uploadBannerImage,
+  bannerController.createBanner
+);
+router.post("/banner/get", bannerController.getBanners);
+router.post(
+  "/banner/edit/:id",
+  authMiddleware,
+  adminMiddleware,
+  uploadBannerImage,
+  bannerController.updateBanner
+);
+router.post(
+  "/banner/delete/:id",
+  authMiddleware,
+  adminMiddleware,
+  bannerController.deleteBanner
+);
+
+// Coupons
+router.post(
+  "/coupon/add",
+  authMiddleware,
+  adminMiddleware,
+  couponController.createCoupon
+);
+router.post(
+  "/coupon/get",
+  authMiddleware,
+  couponController.getCoupons
+);
+router.post(
+  "/coupon/edit/:id",
+  authMiddleware,
+  adminMiddleware,
+  couponController.updateCoupon
+);
+router.post(
+  "/coupon/delete/:id",
+  authMiddleware,
+  adminMiddleware,
+  couponController.deleteCoupon
+);
 
 export default router;

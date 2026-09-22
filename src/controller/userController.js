@@ -1,6 +1,8 @@
 import Users from "../models/Users.js";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
+import { Orders } from "../models/Orders.js";
+import { Sequelize } from "sequelize";
 dotenv.config();
 
 function generateOTP() {
@@ -63,12 +65,6 @@ export const Login = async (req, res) => {
     return res.status(200).json({
       status: 200,
       message: "OTP sent successfully",
-      // otp, // Remove this in production
-      // user: {
-      //   id: user.userid,
-      //   email: user.email,
-      //   role: user.role,
-      // },
     });
   } catch (error) {
     console.error("Login error:", error);
@@ -137,7 +133,7 @@ export const VerifyOtp = async (req, res) => {
 
 export const GetProfile = async (req, res) => {
   try {
-    const user = await Users.findByPk(req.user.id);
+    const user = await Users.findByPk(req.user.userid);
     return res.status(200).json({
       status: 200,
       message: "Profile fetched successfully",
@@ -153,7 +149,7 @@ export const GetProfile = async (req, res) => {
 
 export const UpdateProfile = async (req, res) => {
   try {
-    const user = await Users.findByPk(req.user.id);
+    const user = await Users.findByPk(req.user.userid);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -170,5 +166,51 @@ export const UpdateProfile = async (req, res) => {
       message: "Server error",
       error: error.message,
     });
+  }
+};
+
+export const GetAllUsers = async (req, res) => {
+  try {
+    const users = await Users.findAll({
+      where: { role: "user" },
+      attributes: { exclude: ["otp", "otpExpiresAt"] },
+      raw: true,
+    });
+    const updatedUsers = await Promise.all(
+      users.map(async (user) => {
+        const orderStats = await Orders.findOne({
+          where: { userid: user.userid },
+          attributes: [
+            [
+              Sequelize.fn(
+                "COALESCE",
+                Sequelize.fn("SUM", Sequelize.col("totalamount")),
+                0,
+              ),
+              "totalamount",
+            ],
+            [Sequelize.fn("COUNT", Sequelize.col("orderid")), "totalorders"],
+          ],
+          raw: true,
+        });
+        return {
+          userid: user.userid,
+          name: user.name,
+          email: user.email,
+          mobile: user.mobile,
+          role: user.role,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+          totalamount: Number(orderStats?.totalamount || 0),
+          totalorders: Number(orderStats?.totalorders || 0),
+        };
+      }),
+    );
+    return res.status(200).json({ status: 200, data: updatedUsers });
+  } catch (error) {
+    console.error("GetAllUsers Error:", error);
+    return res
+      .status(500)
+      .json({ status: 500, message: "Server error", error: error.message });
   }
 };

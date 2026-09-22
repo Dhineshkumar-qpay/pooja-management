@@ -193,7 +193,7 @@ export const getAdminAllProducts = async (req, res) => {
   try {
     const products = await Products.findAll();
     return res.status(200).json({
-      message: "products fetched successfully",
+      status: 200,
       data: products,
     });
   } catch (error) {
@@ -287,7 +287,8 @@ export const getUserAllProducts = async (req, res) => {
       const totalrating = reviews.length;
       const averagerating =
         totalrating > 0
-          ? reviews.reduce((sum, review) => sum + review.rating, 0) / totalrating
+          ? reviews.reduce((sum, review) => sum + review.rating, 0) /
+          totalrating
           : 0;
 
       delete productData.reviews;
@@ -384,5 +385,65 @@ export const getUserProductById = async (req, res) => {
     return res
       .status(500)
       .json({ message: "server error", error: error.message });
+  }
+};
+
+export const searchProducts = async (req, res) => {
+  try {
+    const { query } = req.body;
+
+    if (!query) {
+      return res.status(400).json({ message: "Search query is required" });
+    }
+
+    const products = await Products.findAll({
+      where: {
+        [Op.or]: [
+          { productname: { [Op.like]: `%${query}%` } },
+          { description: { [Op.like]: `%${query}%` } },
+          { categoryname: { [Op.like]: `%${query}%` } },
+          { brand: { [Op.like]: `%${query}%` } },
+        ],
+      },
+      include: [
+        {
+          model: ProductReviews,
+          as: "reviews",
+          where: { status: "active" },
+          required: false,
+          attributes: ["rating"],
+        },
+      ],
+    });
+
+    const productsWithRatings = products.map((product) => {
+      const productData = product.toJSON();
+      const reviews = productData.reviews || [];
+      const totalrating = reviews.length;
+      const averagerating =
+        totalrating > 0
+          ? reviews.reduce((sum, review) => sum + review.rating, 0) /
+          totalrating
+          : 0;
+
+      delete productData.reviews;
+
+      return {
+        ...productData,
+        averagerating: parseFloat(averagerating.toFixed(1)),
+        totalrating,
+      };
+    });
+
+    return res.status(200).json({
+      status: 200,
+      data: productsWithRatings,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      status: 500,
+      message: "Server error",
+      error: error.message,
+    });
   }
 };

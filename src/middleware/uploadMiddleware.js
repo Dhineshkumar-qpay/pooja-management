@@ -24,6 +24,7 @@ const upload = multer({
 });
 
 export const uploadCategoryImage = upload.single("thumbnailimage");
+export const uploadBannerImage = upload.single("bannerimage");
 
 export const uploadProductImages = upload.fields([
   { name: "thumbnailimage", maxCount: 1 },

@@ -1,49 +1,44 @@
 import sequelize from "../config/sequelize.js";
 import { DataTypes } from "sequelize";
 
-const Users = sequelize.define(
-  "Users",
+const Testimonials = sequelize.define(
+  "Testimonials",
   {
-    userid: {
+    testimonialid: {
       type: DataTypes.UUID,
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
       allowNull: false,
     },
-    name: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
-    email: {
+    fullname: {
       type: DataTypes.STRING,
       allowNull: false,
-      unique: true,
-      validate: {
-        isEmail: true,
-      },
     },
-    mobile: {
+    location: {
       type: DataTypes.STRING,
       allowNull: true,
     },
-    otp: {
+    title: {
       type: DataTypes.STRING,
       allowNull: true,
     },
-    otpExpiresAt: {
-      type: DataTypes.DATE,
-      allowNull: true,
-    },
-    role: {
-      type: DataTypes.ENUM("user", "admin"),
+    rating: {
+      type: DataTypes.INTEGER,
       allowNull: false,
-      defaultValue: "user",
+    },
+    review: {
+      type: DataTypes.TEXT,
+      allowNull: false,
+    },
+    status: {
+      type: DataTypes.ENUM("active", "inactive"),
+      defaultValue: "inactive",
     },
   },
   {
-    tableName: "users",
+    tableName: "testimonials",
     timestamps: true,
   },
 );
 
-export default Users;
+export default Testimonials;

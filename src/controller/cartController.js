@@ -154,8 +154,9 @@ export const buyNow = async (req, res) => {
       buyNow: true,
     });
   } catch (error) {
-    return res.status(error.message === "Product not found" ? 404 : 500).json({
-      message: error.message || "server error",
+    return res.status(500).json({
+      message: "server error",
+      error: error.message,
     });
   }
 };
