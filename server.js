@@ -9,14 +9,14 @@ const PORT = process.env.MYSQLPORT || 5000;
 const startServer = async () => {
   try {
     await sequelize.authenticate();
-    console.log('Database connected successfully.');
+
     
     // Sync models
     await sequelize.sync({ force: false }); // Set force: true to recreate tables on start
-    console.log('Models synchronized.');
+
 
     app.listen(PORT, () => {
-      console.log(`Server is running on port ${PORT}`);
+
     });
   } catch (error) {
     console.error('Unable to connect to the database:', error);

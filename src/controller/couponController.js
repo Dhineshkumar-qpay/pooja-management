@@ -5,7 +5,9 @@ export const createCoupon = async (req, res) => {
     const { couponcode, type, value, minorder, expiry } = req.body;
 
     if (!couponcode || !type || !value || !expiry) {
-      return res.status(400).json({ message: "couponcode, type, value and expiry are required" });
+      return res
+        .status(400)
+        .json({ message: "couponcode, type, value and expiry are required" });
     }
 
     const existingCoupon = await Coupon.findOne({ where: { couponcode } });
@@ -21,9 +23,11 @@ export const createCoupon = async (req, res) => {
       expiry,
     });
 
-    return res.status(201).json({ message: "Coupon created successfully", data: coupon });
+    return res.status(201).json({ message: "Coupon created successfully" });
   } catch (error) {
-    return res.status(500).json({ message: "Server error", error: error.message });
+    return res
+      .status(500)
+      .json({ message: "Server error", error: error.message });
   }
 };
 
@@ -52,9 +56,13 @@ export const updateCoupon = async (req, res) => {
 
     await coupon.save();
 
-    return res.status(200).json({ message: "Coupon updated successfully", data: coupon });
+    return res
+      .status(200)
+      .json({ message: "Coupon updated successfully", data: coupon });
   } catch (error) {
-    return res.status(500).json({ message: "Server error", error: error.message });
+    return res
+      .status(500)
+      .json({ message: "Server error", error: error.message });
   }
 };
 
@@ -63,9 +71,11 @@ export const getCoupons = async (req, res) => {
     const coupons = await Coupon.findAll({
       order: [["createdAt", "DESC"]],
     });
-    return res.status(200).json({ message: "Coupons fetched successfully", data: coupons });
+    return res.status(200).json({ status: 200, data: coupons });
   } catch (error) {
-    return res.status(500).json({ message: "Server error", error: error.message });
+    return res
+      .status(500)
+      .json({ message: "Server error", error: error.message });
   }
 };
 
@@ -82,6 +92,8 @@ export const deleteCoupon = async (req, res) => {
 
     return res.status(200).json({ message: "Coupon deleted successfully" });
   } catch (error) {
-    return res.status(500).json({ message: "Server error", error: error.message });
+    return res
+      .status(500)
+      .json({ message: "Server error", error: error.message });
   }
 };

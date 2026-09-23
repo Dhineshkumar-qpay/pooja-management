@@ -19,14 +19,16 @@ export const createBanner = async (req, res) => {
       });
     }
 
-    const banner = await Banner.create({
+    await Banner.create({
       title,
       bannerimage: bannerimagePath,
     });
 
-    return res.status(201).json({ message: "Banner created successfully", data: banner });
+    return res.status(200).json({ message: "Banner created successfully" });
   } catch (error) {
-    return res.status(500).json({ message: "Server error", error: error.message });
+    return res
+      .status(500)
+      .json({ message: "Server error", error: error.message });
   }
 };
 
@@ -47,7 +49,12 @@ export const updateBanner = async (req, res) => {
     if (req.file) {
       try {
         const oldImage = banner.bannerimage;
-        banner.bannerimage = await saveImage(req.file.buffer, "banners", 1200, 400);
+        banner.bannerimage = await saveImage(
+          req.file.buffer,
+          "banners",
+          1200,
+          400,
+        );
         deleteImage(oldImage);
       } catch (imageError) {
         return res.status(500).json({
@@ -59,9 +66,11 @@ export const updateBanner = async (req, res) => {
 
     await banner.save();
 
-    return res.status(200).json({ message: "Banner updated successfully", data: banner });
+    return res.status(200).json({ message: "Banner updated successfully" });
   } catch (error) {
-    return res.status(500).json({ message: "Server error", error: error.message });
+    return res
+      .status(500)
+      .json({ message: "Server error", error: error.message });
   }
 };
 
@@ -70,9 +79,11 @@ export const getBanners = async (req, res) => {
     const banners = await Banner.findAll({
       order: [["createdAt", "DESC"]],
     });
-    return res.status(200).json({ message: "Banners fetched successfully", data: banners });
+    return res.status(200).json({ status: 200, data: banners });
   } catch (error) {
-    return res.status(500).json({ message: "Server error", error: error.message });
+    return res
+      .status(500)
+      .json({ message: "Server error", error: error.message });
   }
 };
 
@@ -90,6 +101,8 @@ export const deleteBanner = async (req, res) => {
 
     return res.status(200).json({ message: "Banner deleted successfully" });
   } catch (error) {
-    return res.status(500).json({ message: "Server error", error: error.message });
+    return res
+      .status(500)
+      .json({ message: "Server error", error: error.message });
   }
 };

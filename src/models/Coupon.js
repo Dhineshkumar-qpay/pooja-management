@@ -33,7 +33,7 @@ const Coupon = sequelize.define(
     },
   },
   {
-    tableName: "coupons",
+    tableName: "coupon",
     timestamps: true,
   }
 );

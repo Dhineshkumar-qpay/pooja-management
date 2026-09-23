@@ -11,7 +11,7 @@ async function createDatabase() {
     });
     const dbName = process.env.MYSQL_DATABASE || "pooja";
     await connection.query(`CREATE DATABASE IF NOT EXISTS ${dbName}`);
-    console.log(`Database '${dbName}' created or already exists.`);
+
 
     await connection.end();
   } catch (error) {

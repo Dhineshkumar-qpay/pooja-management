@@ -22,6 +22,18 @@ const Orders = sequelize.define(
       type: DataTypes.FLOAT,
       allowNull: false,
     },
+    subtotal: {
+      type: DataTypes.FLOAT,
+      defaultValue: 0.0,
+    },
+    couponcode: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    discountprice: {
+      type: DataTypes.FLOAT,
+      defaultValue: 0.0,
+    },
     paymentstatus: {
       type: DataTypes.ENUM("pending", "paid", "failed"),
       defaultValue: "pending",

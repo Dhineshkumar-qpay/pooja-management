@@ -7,6 +7,7 @@ import Products from "../models/Products.js";
 import dayjs from "dayjs";
 import Razorpay from "razorpay";
 import crypto from "crypto";
+import Coupon from "../models/Coupon.js";
 
 const RAZORPAY_KEY_SECRET = "sjZ6vF0MpdRcq1mOoxYU28ZC";
 const RAZORPAY_KEY_ID = "rzp_test_Tee0FU35xhyKoK";
@@ -18,7 +19,7 @@ const razorpay = new Razorpay({
 
 export const PlaceOrder = async (req, res) => {
   const userid = req.user?.userid;
-  const { addressid } = req.body;
+  const { addressid, couponcode } = req.body;
 
   if (!userid) {
     return res.status(401).json({
@@ -129,11 +130,64 @@ export const PlaceOrder = async (req, res) => {
     }
 
     // -----------------------------------
+    //  Coupon code calculation
+    // -----------------------------------
+
+    let subtotal = totalAmount;
+    let discount = 0;
+    let finalAmount = totalAmount;
+
+    if (couponcode) {
+      const coupon = await Coupon.findOne({
+        where: { couponcode: couponcode.trim() },
+        transaction,
+      });
+
+      if (!coupon) {
+        await transaction.rollback();
+        return res.status(400).json({
+          status: 400,
+          message: "Coupon not available",
+        });
+      }
+
+      if (coupon.expiry && new Date(coupon.expiry) < new Date()) {
+        await transaction.rollback();
+        return res.status(400).json({
+          message: "Coupon has expired",
+        });
+      }
+
+      const minimumOrder = Number(coupon.minorder) || 0;
+      if (subtotal < minimumOrder) {
+        await transaction.rollback();
+        return res.status(400).json({
+          message: `This coupon is applicable only for orders above ₹${minimumOrder}`,
+        });
+      }
+
+      const couponValue = Number(coupon.value) || 0;
+      if (coupon.type === "percentage") {
+        discount = (subtotal * couponValue) / 100;
+      } else if (coupon.type === "flat") {
+        discount = couponValue;
+      } else {
+        await transaction.rollback();
+        return res.status(400).json({
+          message: "Invalid coupon discount type",
+        });
+      }
+
+      discount = Math.min(discount, subtotal);
+      finalAmount = subtotal - discount;
+    }
+
+    // -----------------------------------
     // 4. Create Razorpay Order
     // -----------------------------------
 
     const razorpayOrder = await razorpay.orders.create({
-      amount: Math.round(totalAmount * 100),
+      amount: Math.round(finalAmount * 100),
       currency: "INR",
       receipt: `order_${Date.now()}`,
       notes: {
@@ -149,7 +203,10 @@ export const PlaceOrder = async (req, res) => {
       {
         userid,
         addressid,
-        totalamount: totalAmount,
+        totalamount: finalAmount,
+        subtotal: subtotal,
+        couponcode: couponcode ? couponcode.trim() : null,
+        discountprice: discount,
         paymentstatus: "pending",
         orderstatus: "pending",
         shippingprice: 0,
@@ -191,7 +248,7 @@ export const PlaceOrder = async (req, res) => {
         orderid: order.orderid,
         razorpayorderid: razorpayOrder.id,
         razorpaykeyid: RAZORPAY_KEY_ID,
-        amount: totalAmount,
+        amount: finalAmount,
         amountpaise: razorpayOrder.amount,
         currency: "INR",
         paymentstatus: "pending",
@@ -211,7 +268,6 @@ export const PlaceOrder = async (req, res) => {
     });
   }
 };
-
 
 export const VerifyPayment = async (req, res) => {
   const userid = req.user?.userid;
@@ -304,14 +360,10 @@ export const VerifyPayment = async (req, res) => {
     // 4. Generate signature
     // -----------------------------------
 
-    const body =
-      `${razorpay_order_id}|${razorpay_payment_id}`;
+    const body = `${razorpay_order_id}|${razorpay_payment_id}`;
 
     const expectedSignature = crypto
-      .createHmac(
-        "sha256",
-        RAZORPAY_KEY_SECRET,
-      )
+      .createHmac("sha256", RAZORPAY_KEY_SECRET)
       .update(body)
       .digest("hex");
 
@@ -332,15 +384,9 @@ export const VerifyPayment = async (req, res) => {
     // 6. Verify Razorpay payment
     // -----------------------------------
 
-    const razorpayPayment =
-      await razorpay.payments.fetch(
-        razorpay_payment_id,
-      );
+    const razorpayPayment = await razorpay.payments.fetch(razorpay_payment_id);
 
-    if (
-      razorpayPayment.order_id !==
-      razorpay_order_id
-    ) {
+    if (razorpayPayment.order_id !== razorpay_order_id) {
       await transaction.rollback();
 
       return res.status(400).json({
@@ -352,13 +398,9 @@ export const VerifyPayment = async (req, res) => {
     // 7. Check payment amount
     // -----------------------------------
 
-    const expectedAmount =
-      Math.round(Number(order.totalamount) * 100);
+    const expectedAmount = Math.round(Number(order.totalamount) * 100);
 
-    if (
-      Number(razorpayPayment.amount) !==
-      expectedAmount
-    ) {
+    if (Number(razorpayPayment.amount) !== expectedAmount) {
       await transaction.rollback();
 
       return res.status(400).json({
@@ -383,13 +425,10 @@ export const VerifyPayment = async (req, res) => {
     // -----------------------------------
 
     for (const item of order.orderitems) {
-      const product = await Products.findByPk(
-        item.productid,
-        {
-          transaction,
-          lock: transaction.LOCK.UPDATE,
-        },
-      );
+      const product = await Products.findByPk(item.productid, {
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
 
       if (!product) {
         await transaction.rollback();
@@ -409,8 +448,7 @@ export const VerifyPayment = async (req, res) => {
       }
 
       // Reduce stock
-      product.stockquantity =
-        stock - quantity;
+      product.stockquantity = stock - quantity;
 
       await product.save({
         transaction,
@@ -425,10 +463,8 @@ export const VerifyPayment = async (req, res) => {
       {
         paymentstatus: "paid",
         orderstatus: "confirmed",
-        razorpaypaymentid:
-          razorpay_payment_id,
-        razorpaysignature:
-          razorpay_signature,
+        razorpaypaymentid: razorpay_payment_id,
+        razorpaysignature: razorpay_signature,
       },
       {
         transaction,
@@ -442,7 +478,7 @@ export const VerifyPayment = async (req, res) => {
     await Cart.destroy({
       where: {
         userid,
-        productid: order.orderitems.map(item => item.productid),
+        productid: order.orderitems.map((item) => item.productid),
       },
       transaction,
     });
@@ -470,10 +506,7 @@ export const VerifyPayment = async (req, res) => {
       await transaction.rollback();
     }
 
-    console.error(
-      "VerifyPayment Error:",
-      error,
-    );
+    console.error("VerifyPayment Error:", error);
 
     return res.status(500).json({
       status: 500,
@@ -526,7 +559,8 @@ export const BuyAgain = async (req, res) => {
 
     if (!addressExists) {
       return res.status(400).json({
-        message: "Original delivery address is no longer available. Please select a new address.",
+        message:
+          "Original delivery address is no longer available. Please select a new address.",
       });
     }
 
@@ -544,14 +578,18 @@ export const BuyAgain = async (req, res) => {
 
         if (!product) {
           await transaction.rollback();
-          return res.status(404).json({ message: `Product not found for product ID ${item.productid}` });
+          return res.status(404).json({
+            message: `Product not found for product ID ${item.productid}`,
+          });
         }
         const quantity = Number(item.quantity);
         const stockQuantity = Number(product.stockquantity);
 
         if (quantity <= 0) {
           await transaction.rollback();
-          return res.status(400).json({ message: `Invalid quantity for ${product.productname}` });
+          return res
+            .status(400)
+            .json({ message: `Invalid quantity for ${product.productname}` });
         }
         if (stockQuantity < quantity) {
           await transaction.rollback();
@@ -689,6 +727,54 @@ export const GetAllAdminOrders = async (req, res) => {
   }
 };
 
+export const GetAdminOrderDetails = async (req, res) => {
+  try {
+    const { orderid } = req.body;
+
+    const orderDetails = await Orders.findOne({
+      where: {
+        orderid,
+      },
+      include: [
+        {
+          model: OrderItems,
+          as: "orderitems",
+          attributes: {
+            // exclude: ["userid", "orderid"],
+          },
+        },
+      ],
+    });
+
+    if (!orderDetails) {
+      return res.status(404).json({
+        status: 404,
+        message: "Order not found",
+      });
+    }
+
+    const address = await Address.findOne({
+      where: {
+        userid: orderDetails.userid,
+        addressid: orderDetails.addressid,
+      },
+    });
+
+    return res.status(200).json({
+      status: 200,
+      data: {
+        orderdetails: orderDetails,
+        address,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      status: 500,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
 // ------------------ User Orders ------------------
 
 export const GetAllUserOrders = async (req, res) => {
@@ -789,7 +875,7 @@ export const UpdateOrderStatus = async (req, res) => {
     await order.save();
     return res.status(200).json({
       message: "Order status updated successfully",
-      data: order,
+      status: orderstatus,
     });
   } catch (error) {
     return res.status(500).json({

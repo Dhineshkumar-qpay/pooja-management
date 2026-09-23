@@ -154,6 +154,11 @@ router.post(
 );
 router.post("/cart/count", authMiddleware, cartController.getCartCount);
 router.post("/cart/buynow", authMiddleware, cartController.buyNow);
+router.post(
+  "/cart/apply-coupon",
+  authMiddleware,
+  cartController.ApplyCouponCheckout,
+);
 
 // Address
 router.post("/address/add", authMiddleware, addressController.AddAddress);
@@ -179,7 +184,18 @@ router.post(
 router.post("/orders/all", authMiddleware, orderController.GetAllAdminOrders);
 router.post("/orders/user", authMiddleware, orderController.GetAllUserOrders);
 router.post("/orders/details", authMiddleware, orderController.GetOrderDetails);
+router.post(
+  "/orders/admin-details",
+  authMiddleware,
+  adminMiddleware,
+  orderController.GetAdminOrderDetails,
+);
 router.post("/orders/buy-again", authMiddleware, orderController.BuyAgain);
+router.post(
+  "/orders/update-status",
+  authMiddleware,
+  orderController.UpdateOrderStatus,
+);
 
 // Testimonials
 router.post("/testimonials/add", testimonialController.addTestimonial);
@@ -203,7 +219,7 @@ router.post(
   authMiddleware,
   adminMiddleware,
   uploadBannerImage,
-  bannerController.createBanner
+  bannerController.createBanner,
 );
 router.post("/banner/get", bannerController.getBanners);
 router.post(
@@ -211,13 +227,13 @@ router.post(
   authMiddleware,
   adminMiddleware,
   uploadBannerImage,
-  bannerController.updateBanner
+  bannerController.updateBanner,
 );
 router.post(
   "/banner/delete/:id",
   authMiddleware,
   adminMiddleware,
-  bannerController.deleteBanner
+  bannerController.deleteBanner,
 );
 
 // Coupons
@@ -225,24 +241,20 @@ router.post(
   "/coupon/add",
   authMiddleware,
   adminMiddleware,
-  couponController.createCoupon
+  couponController.createCoupon,
 );
-router.post(
-  "/coupon/get",
-  authMiddleware,
-  couponController.getCoupons
-);
+router.post("/coupon/get", authMiddleware, couponController.getCoupons);
 router.post(
   "/coupon/edit/:id",
   authMiddleware,
   adminMiddleware,
-  couponController.updateCoupon
+  couponController.updateCoupon,
 );
 router.post(
   "/coupon/delete/:id",
   authMiddleware,
   adminMiddleware,
-  couponController.deleteCoupon
+  couponController.deleteCoupon,
 );
 
 export default router;
