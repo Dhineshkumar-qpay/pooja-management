@@ -2,7 +2,8 @@ import Products from "../models/Products.js";
 import Category from "../models/Category.js";
 import { saveImage, deleteImage } from "../middleware/uploadMiddleware.js";
 import ProductReviews from "../models/ProductReviews.js";
-import { Op } from "sequelize";
+import { Op, where } from "sequelize";
+import UserFavourite from "../models/UserFavourite.js";
 
 export const createProduct = async (req, res) => {
   try {
@@ -288,7 +289,7 @@ export const getUserAllProducts = async (req, res) => {
       const averagerating =
         totalrating > 0
           ? reviews.reduce((sum, review) => sum + review.rating, 0) /
-          totalrating
+            totalrating
           : 0;
 
       delete productData.reviews;
@@ -335,6 +336,7 @@ export const getAdminProductById = async (req, res) => {
 
 export const getUserProductById = async (req, res) => {
   try {
+    const userid = req.user?.userid;
     const { productid } = req.params;
 
     const product = await Products.findOne({
@@ -375,6 +377,8 @@ export const getUserProductById = async (req, res) => {
       },
       limit: 10,
     });
+
+   
 
     return res.status(200).json({
       message: "product fetched successfully",
@@ -423,7 +427,7 @@ export const searchProducts = async (req, res) => {
       const averagerating =
         totalrating > 0
           ? reviews.reduce((sum, review) => sum + review.rating, 0) /
-          totalrating
+            totalrating
           : 0;
 
       delete productData.reviews;

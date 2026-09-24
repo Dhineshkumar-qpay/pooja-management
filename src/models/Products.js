@@ -95,6 +95,11 @@ const Products = sequelize.define(
       allowNull: false,
       defaultValue: false,
     },
+     isFavourite: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
   },
   {
     tableName: "products",

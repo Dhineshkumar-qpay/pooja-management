@@ -10,6 +10,8 @@ import * as orderController from "../controller/orderController.js";
 import * as testimonialController from "../controller/testimonialController.js";
 import * as bannerController from "../controller/bannerController.js";
 import * as couponController from "../controller/couponController.js";
+import * as dashboardController from "../controller/dashboardController.js";
+import * as favouriteController from "../controller/favouriteController.js";
 import authMiddleware from "../middleware/auth.js";
 import adminMiddleware from "../middleware/admin.js";
 import {
@@ -35,6 +37,21 @@ router.post(
   userController.GetAllUsers,
 );
 
+//Dashboard
+router.post(
+  "/dashboard/counts",
+  authMiddleware,
+  adminMiddleware,
+  dashboardController.DashboardCounts,
+);
+router.post(
+  "/dashboard/sales",
+  authMiddleware,
+  adminMiddleware,
+  dashboardController.DashboardSales,
+);
+
+// Categories
 router.post(
   "/category/create",
   authMiddleware,
@@ -117,6 +134,24 @@ router.post(
   authMiddleware,
   adminMiddleware,
   productReviewsController.deleteProductReview,
+);
+
+// User favourites
+
+router.post(
+  "/favourite/add",
+  authMiddleware,
+  favouriteController.AddFavouriteProduct,
+);
+router.post(
+  "/favourite/delete",
+  authMiddleware,
+  favouriteController.DeleteFavouriteProduct,
+);
+router.post(
+  "/favourite/get",
+  authMiddleware,
+  favouriteController.GetFavouriteProducts,
 );
 
 // Contact Us

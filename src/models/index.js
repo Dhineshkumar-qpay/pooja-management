@@ -10,6 +10,7 @@ import { Orders, OrderItems } from "./Orders.js";
 import Testimonials from "./Testimonials.js";
 import Banner from "./Banner.js";
 import Coupon from "./Coupon.js";
+import UserFavourite from "./UserFavourite.js";
 
 Category.hasMany(Products, { foreignKey: "categoryid" });
 Products.belongsTo(Category, { foreignKey: "categoryid" });
@@ -28,6 +29,9 @@ Address.belongsTo(Users, { foreignKey: "userid" });
 
 Orders.hasMany(OrderItems, { foreignKey: "orderid", as: "orderitems" });
 OrderItems.belongsTo(Orders, { foreignKey: "orderid", as: "orderitems" });
+
+Products.hasMany(UserFavourite, { foreignKey: "productid" });
+UserFavourite.belongsTo(Products, { foreignKey: "productid" });
 
 export default {
   sequelize,
