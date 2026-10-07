@@ -378,8 +378,6 @@ export const getUserProductById = async (req, res) => {
       limit: 10,
     });
 
-   
-
     return res.status(200).json({
       message: "product fetched successfully",
       data: productData,
@@ -442,6 +440,53 @@ export const searchProducts = async (req, res) => {
     return res.status(200).json({
       status: 200,
       data: productsWithRatings,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      status: 500,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
+export const getLowStockProducts = async (req, res) => {
+  try {
+    const lowStockProducts = await Products.findAll({
+      where: {
+        stockquantity: {
+          [Op.lte]: 5,
+        },
+      },
+    });
+    return res.status(200).json({
+      status: 200,
+      data: lowStockProducts,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      status: 500,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
+export const updateStock = async (req, res) => {
+  try {
+    const { productid, stockquantity } = req.body;
+
+    const product = await Products.findByPk(productid);
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    product.stockquantity = stockquantity;
+    await product.save();
+
+    return res.status(200).json({
+      status: 200,
+      data: "Stock updated successfully",
     });
   } catch (error) {
     return res.status(500).json({

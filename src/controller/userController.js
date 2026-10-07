@@ -133,7 +133,11 @@ export const VerifyOtp = async (req, res) => {
 
 export const GetProfile = async (req, res) => {
   try {
-    const user = await Users.findByPk(req.user.userid);
+    const user = await Users.findByPk(req.user.userid, {
+      attributes: {
+        exclude: ["otp", "otpExpiresAt", "role"],
+      },
+    });
     return res.status(200).json({
       status: 200,
       message: "Profile fetched successfully",

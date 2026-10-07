@@ -111,6 +111,18 @@ router.post(
   productController.getUserProductById,
 );
 router.post("/product/search", productController.searchProducts);
+router.post(
+  "/product/low-stocks",
+  authMiddleware,
+  adminMiddleware,
+  productController.getLowStockProducts,
+);
+router.post(
+  "/product/update-stock",
+  authMiddleware,
+  adminMiddleware,
+  productController.updateStock,
+);
 
 // Product Reviews
 router.post(

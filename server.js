@@ -10,11 +10,6 @@ const startServer = async () => {
   try {
     await sequelize.authenticate();
 
-    
-    // Sync models
-    await sequelize.sync({ force: false }); // Set force: true to recreate tables on start
-
-
     app.listen(PORT, () => {
 
     });
